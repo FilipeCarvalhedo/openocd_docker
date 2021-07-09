@@ -122,4 +122,4 @@ device_path="/dev/bus/usb/$device_bus/$device_device"
 echo $device_path
 
 # echo "$((3333+$device_number))"
-docker run --rm -it ${final_path[@]} -p 3333:"$((3333+$device_number))" --net=host -i --device=$device_path docker-arm  "${final_list[@]}"
+docker run --rm -it ${final_path[@]} -p 3333:"$((3333+$device_number))" --net=host -i --device=$device_path filipecarvalhedo/docker_openocd  "${final_list[@]}"
