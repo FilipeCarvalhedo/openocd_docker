@@ -3,7 +3,7 @@
 
 stlink_vendor="0483:3748"
 
-readarray -t devices < <( lsusb | grep $stlink_vendor)
+readarray -t devices < <( lsusb | grep $stlink_vendor | sort)
 
 DOCKER_APP_PATH="/usr/src/app"
 
