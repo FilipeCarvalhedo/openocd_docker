@@ -1,0 +1,10 @@
+#/bin/bash
+
+#docker run --rm -v "$(pwd)/app":/usr/src/app -i --device=/dev/bus/usb/003/082 docker-arm "$1"
+
+# Absolute path to this script. /home/user/bin/foo.sh
+SCRIPT=$(readlink -f $0)
+# Absolute path this script is in. /home/user/bin
+SCRIPTPATH=`dirname $SCRIPT`
+
+bash $SCRIPTPATH/emuopenocd "$@"

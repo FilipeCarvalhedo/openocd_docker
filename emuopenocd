@@ -1,0 +1,125 @@
+#/bin/bash
+#echo $@
+
+stlink_vendor="0483:3748"
+
+readarray -t devices < <( lsusb | grep $stlink_vendor)
+
+DOCKER_APP_PATH="/usr/src/app"
+
+DEVICE=${devices[0]}
+device_number=0
+
+if [ -z "$DEVICE" ]
+then
+	echo "No stlink found"
+	exit
+fi
+
+count=1
+
+for i in `seq 1 $#`
+do
+	current_data=`echo ${@:i:1}`
+	if [ ! -z `echo $current_data | grep -e '-zn\|--device'` ]
+	then
+		echo "Devices number: ${#devices[@]}"
+		for i in `seq 0 $((${#devices[@]}-1))`
+		do
+			# device_list+=( "$i" )
+			echo $i ${devices[@]:i:1}
+		done
+		exit
+	fi
+
+	if [ ! -z `echo $current_data | grep -e '-zd\|--device'` ]
+	then
+		device_number=`echo ${@:i+1:1}`
+		if [ ! -z "${device_number##*[!0-9]*}" ] ;
+		then 
+			if [ $device_number -ge  ${#devices[@]} ]
+			then
+				echo "Device not exist"
+				exit
+			fi
+			echo "Using Device $device_number"
+			DEVICE=${devices[$device_number]}
+		else
+			echo "Invalid Device"
+			exit
+		fi
+	fi
+	if [ ! -z `echo $current_data | grep -e '-f\|--file'` ]
+	then
+	 	config_file=`echo ${@:i+1:1}`
+	 	CONFIG_FILE_NAME="/usr/src/app/config/"`basename $config_file`
+	 	CONFIG_FILE_DIR=`dirname $config_file`
+	 	# path_list+=( "$CONFIG_FILE_DIR" )
+	 	final_list+=( "$current_data" )
+	 	final_list+=( "$CONFIG_FILE_NAME" )
+
+	 	if [[ "${CONFIG_FILE_DIR:0:1}" == / || "${CONFIG_FILE_DIR:0:2}" == ~[/a-z] ]]
+		then
+		    final_path+=( "-v $CONFIG_FILE_DIR:/usr/src/app/config" )
+		else
+		    final_path+=( "-v $(pwd)/$CONFIG_FILE_DIR:/usr/src/app/config" )
+		fi	
+	fi
+	if [ ! -z `echo $current_data | grep -e "-c"` ]
+	then
+		string_tmp=""
+
+		command_data=`echo ${@:i+1:1}`
+		for y in $command_data
+		do
+			command_data_list+=( "$y" )
+		done
+		# echo ${command_data_list[@]:0:1}
+		#for y in `seq 0 ${#command_data_list[@]}`
+		for ((y = 0 ; y < ${#command_data_list[@]} ; y++));
+		do
+			current_data_cmd=`echo ${command_data_list[@]:y:1}`
+			if [ "$current_data_cmd" = "program" -o \
+			 		"$current_data_cmd" = "dump_image" -o \
+					"$current_data_cmd" = "fast_load_image" -o \
+					"$current_data_cmd" = "load_image" -o \
+					"$current_data_cmd" = "test_image" -o \
+					"$current_data_cmd" = "verify_image" -o \
+					"$current_data_cmd" = "verify_image_checksum" ]
+			then
+				# echo "achei ${command_data_list[@]:y+1:1}"
+				program_file=`echo ${command_data_list[@]:y+1:1}`
+			 	PROGRAM_FILE_NAME="/usr/src/app/$current_data_cmd/"`basename $program_file`
+			 	PROGRAM_FILE_DIR=`dirname $program_file`
+			 	# path_list+=( "$PROGRAM_FILE_DIR" )
+
+			 	if [[ "${PROGRAM_FILE_DIR:0:1}" == / || "${PROGRAM_FILE_DIR:0:2}" == ~[/a-z] ]]
+				then
+				    final_path+=( "-v $PROGRAM_FILE_DIR:/usr/src/app/$current_data_cmd" )
+				else
+				    final_path+=( "-v $(pwd)/$PROGRAM_FILE_DIR:/usr/src/app/$current_data_cmd" )
+				fi	
+
+				string_tmp="$string_tmp $current_data_cmd $PROGRAM_FILE_NAME"
+				y=$((y+1))
+			else
+				string_tmp="$string_tmp $current_data_cmd"
+			fi
+
+			# echo $current_data_cmd
+		done
+		# echo $string_tmp
+
+		final_list+=( "$current_data" )
+		final_list+=( "$string_tmp" )
+	fi
+
+done
+
+device_bus=`echo $DEVICE | awk -F ' ' '{print $2}'`
+device_device=`echo $DEVICE | awk -F ' ' '{print $4}' | sed 's/://'`
+device_path="/dev/bus/usb/$device_bus/$device_device"
+echo $device_path
+
+# echo "$((3333+$device_number))"
+docker run --rm -it ${final_path[@]} -p 3333:"$((3333+$device_number))" --net=host -i --device=$device_path docker-arm  "${final_list[@]}"
