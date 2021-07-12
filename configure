@@ -1,0 +1,10 @@
+#!/bin/bash
+
+docker pull filipecarvalhedo/docker_openocd
+
+if [ "$EUID" -ne 0 ]
+  then echo "Please run as root"
+  exit
+fi
+
+ln -r -s scripts/openocd /usr/local/bin/
