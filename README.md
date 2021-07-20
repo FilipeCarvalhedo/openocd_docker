@@ -12,13 +12,18 @@ apt-get install docker docker.io -y
 ```
 
 ## Usage
-This repository is util just to maintenance or version update. So to use this software, it is not necessary to clone it. It's only necessary have docker installed and logged into the loopkey account.
+Execute configure with sudo to pull docker image and create a link on /usr/local/bin/openocd
+
+To use parallel stlink program use normal openocd with new arguments:
+	"-zn" is to show stlink devices connected
+	"-zl id_device"
+
 
 ## Maintenance or Update
 This steps is just to be used by maintenance or update the docker image, use very carefully.
 
 1. Clone this repository.
-2. Execute configure file on root. This step requires that ssh key of loopkey github is configured.
+2. Execute configure file on root.
 ```
 ./configure
 ```
